@@ -55,6 +55,8 @@ type Kong struct {
 	helpFlag      *Flag
 	vars          Vars
 
+	completers Completers
+
 	// Set temporarily by Options. These are applied after build().
 	postBuildOptions []Option
 }
@@ -193,6 +195,10 @@ func (k *Kong) extraFlags() []*Flag {
 func (k *Kong) Parse(args []string) (ctx *Context, err error) {
 	defer catch(&err)
 	ctx, err = Trace(k, args)
+	if err != nil {
+		return nil, err
+	}
+	err = k.runCompletion(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -353,6 +359,17 @@ func (k *Kong) LoadConfig(path string) (Resolver, error) {
 	defer r.Close()
 
 	return k.loader(r)
+}
+
+func (k *Kong) runCompletion(ctx *Context) error {
+	ran, err := defaultCompleter(ctx)
+	if err != nil {
+		return err
+	}
+	if ran {
+		k.Exit(0)
+	}
+	return nil
 }
 
 func catch(err *error) {
